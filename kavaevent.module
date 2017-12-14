@@ -1,0 +1,36 @@
+<?php
+
+function kavaevent_menu() {
+  $items = array();
+
+  $items['kavaevent'] = array(
+    'title' => t('Inschrijven'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('kavaevent_form'),
+    'access arguments' => array('access content'),
+    'description' => t('Profiel'),
+    'type' => MENU_CALLBACK,
+    'file' => 'KavaEventHelper.php',
+  );
+
+  return $items;
+}
+
+function kavaevent_form($form, &$form_state) {
+  global $user;
+
+  try {
+    $k = new KavaEventHelper($user->uid);
+
+    $form['description'] = [
+      '#type' => 'item',
+      '#title' => 'id = ' . $k->contactID . ', has permission = ' . $k->canRegisterTeamMembers,
+    ];
+    var_dump($k->teamMembers);
+  }
+  catch (Exception $e) {
+    drupal_set_message($e->getMessage(), 'error');
+  }
+
+  return $form;
+}

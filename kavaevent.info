@@ -1,0 +1,10 @@
+; $Id$
+
+name = KAVA evenement tussenpagina
+description = KAVA evenement registratie tussenpagina
+package = KAVA
+core = 7.x
+
+files[] = kavaevent.module
+files[] = KavaEventHelper.php
+
