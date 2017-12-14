@@ -169,7 +169,27 @@ class KavaEventHelper {
     }
   }
 
-  public function registerContactsForEvent($eventID, $contactIDs) {
+  public function registerContactsForEvent($contactIDs) {
+    foreach ($contactIDs as $contactID) {
+      // Check if registration already exists
+      $count = civicrm_api3('Participant', 'getcount', [
+        'contact_id' => $contactID,
+        'event_id'   => $this->eventID,
+      ]);
+      if ($count > 0) {
+        continue;
+      }
+
+      // Add new registration
+      civicrm_api3('Participant', 'create', [
+        'contact_id'    => $contactID,
+        'event_id'      => $this->eventID,
+        'status_id'     => 'Registered',
+        'role_id'       => 'Attendee',
+        'register_date' => date('Ymdhis'),
+        'source'        => 'Teaminschrijving website',
+      ]);
+    }
   }
 
   private function getCustomFieldApiName($customGroupName, $customFieldName) {

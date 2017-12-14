@@ -89,7 +89,7 @@ function kavaevent_submit($form_id, &$form_state) {
     global $user;
     $contact = new KavaEventHelper($form_state['values']['event_id'], $user->uid);
 
-    $contact->registerContactsForEvent($form_state['values']['event_id'], $selectedContacts);
+    $contact->registerContactsForEvent($selectedContacts);
     drupal_set_message('De geselecteerde personen zijn ingeschreven');
     drupal_goto('agenda');
   }
