@@ -4,11 +4,11 @@ function kavaevent_menu() {
   $items = array();
 
   $items['kavaevent'] = array(
-    'title' => t('Inschrijven'),
+    'title' => 'Inschrijven',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('kavaevent_form'),
     'access arguments' => array('access content'),
-    'description' => t('Profiel'),
+    'description' => '',
     'type' => MENU_CALLBACK,
     'file' => 'KavaEventHelper.php',
   );
@@ -20,17 +20,79 @@ function kavaevent_form($form, &$form_state) {
   global $user;
 
   try {
-    $k = new KavaEventHelper($user->uid);
+    // get the event id from the url
+    $urlParams = drupal_get_query_parameters();
+    if (isset($urlParams['event_id'])) {
+      $eventID = $urlParams['event_id'];
+    }
+    else {
+      // no event id
+      drupal_set_message('Geen event opgegeven', 'error');
+      drupal_goto('agenda');
+    }
 
-    $form['description'] = [
-      '#type' => 'item',
-      '#title' => 'id = ' . $k->contactID . ', has permission = ' . $k->canRegisterTeamMembers,
-    ];
-    var_dump($k->teamMembers);
+    $contact = new KavaEventHelper($user->uid);
+
+    // check if person can also register team members
+    if ($contact->canRegisterTeamMembers) {
+      $form['event_id'] = array(
+        '#type' => 'hidden',
+        '#value' => $eventID,
+      );
+
+      $form['description'] = array(
+        '#type' => 'item',
+        '#title' => 'Wie wil je inschrijven?',
+      );
+
+      // build list of team members
+      foreach ($contact->teamMembers as $teamMember) {
+        $form['contact_' . $teamMember[0]] = [
+          '#type' => 'checkbox',
+          '#title' => $teamMember[1] . ', ' . $teamMember[2],
+        ];
+      }
+
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => 'Nu inschrijven',
+        '#submit' => array('kavaevent_submit'),
+      );
+    }
+    else {
+      // cannot register team, redirect to the event register page
+      drupal_goto('civicrm/event/register?id=' . $eventID . '&reset=1');
+    }
   }
   catch (Exception $e) {
     drupal_set_message($e->getMessage(), 'error');
   }
 
   return $form;
+}
+
+function kavaevent_submit($form_id, &$form_state) {
+  $selectedContacts = array();
+
+  // get selected contacts
+  foreach ($form_state['values'] as $key => $value) {
+    if (substr($key, 0, 8) == 'contact_' && $value == 1) {
+      $selectedContacts[] = substr($key, 8);
+    }
+  }
+
+  if (count($selectedContacts) == 0) {
+    drupal_set_message('Gelieve een contact te selecteren', 'error');
+    drupal_goto(current_path());
+  }
+  else {
+    global $user;
+    $contact = new KavaEventHelper($user->uid);
+
+    $contact->registerContactsForEvent($form_state['values']['event_id'], $selectedContacts);
+    drupal_set_message('De geselecteerde personen zijn ingeschreven');
+    drupal_goto('agenda');
+  }
+
+  exit;
 }

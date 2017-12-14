@@ -76,37 +76,56 @@ class KavaEventHelper {
     $relTypeCoOwner = 54;
 
     // lookup colleagues
-    $sql = '
-      SELECT
-        c.id
-        , c.display_name
-        , c.sort_name
-      FROM
-        civicrm_contact c
-      INNER JOIN
-        civicrm_relationship r on c.id = r.contact_id_a
-      WHERE
-        r.contact_id_b = %1
-        AND r.relationship_type_id in (%2)
-        AND r.is_active = 1
-      UNION ALL
-      SELECT
-        c.id
-        , c.display_name
-        , c.sort_name
-      FROM
-        civicrm_contact c
-      INNER JOIN
-        civicrm_relationship r on c.id = r.contact_id_b
-      WHERE
-        r.contact_id_a = %1
-        AND r.relationship_type_id in (%3, %4, %5, %6, %7)
-        AND r.is_active = 1      
+    $sql = "
+      SELECT * FROM
+      (
+        SELECT
+          c.id
+          , c.display_name
+          , c.sort_name
+          , (case r.relationship_type_id
+               when %2 then 'Titularis'
+               when %3 then 'Co-titularis'
+               when %4 then 'Adjunct'
+               when %5 then 'Assistent'
+               when %6 then 'Eigenaar'
+               when %7 then 'Mede-eigenaar'
+            end) job_title
+        FROM
+          civicrm_contact c
+        INNER JOIN
+          civicrm_relationship r on c.id = r.contact_id_b
+        WHERE
+          r.contact_id_a = %1
+          AND r.relationship_type_id in (%2, %3)
+          AND r.is_active = 1
+        UNION ALL
+        SELECT
+          c.id
+          , c.display_name
+          , c.sort_name
+          , (case r.relationship_type_id
+               when %2 then 'Titularis'
+               when %3 then 'Co-titularis'
+               when %4 then 'Adjunct'
+               when %5 then 'Assistent'
+               when %6 then 'Eigenaar'
+               when %7 then 'Mede-eigenaar'
+            end) job_title
+        FROM
+          civicrm_contact c
+        INNER JOIN
+          civicrm_relationship r on c.id = r.contact_id_a
+        WHERE
+          r.contact_id_b = %1
+          AND r.relationship_type_id in (%4, %5, %6, %7)
+          AND r.is_active = 1      
+      ) dummy  
       ORDER BY
         sort_name
-    ';
+    ";
     $sqlParams = array(
-      1 => array($this->contactID, 'Integer'),
+      1 => array($this->pharmacyID, 'Integer'),
       2 => array($relTypeTitularis, 'Integer'),
       3 => array($relTypeCoTitularis, 'Integer'),
       4 => array($relTypeAdjunct, 'Integer'),
@@ -120,7 +139,11 @@ class KavaEventHelper {
       $this->teamMembers[] = array(
         $dao->id,
         $dao->display_name,
+        $dao->job_title
       );
     }
+  }
+
+  public function registerContactsForEvent($eventID, $contactIDs) {
   }
 }
