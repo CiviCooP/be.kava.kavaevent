@@ -31,7 +31,7 @@ function kavaevent_form($form, &$form_state) {
       drupal_goto('agenda');
     }
 
-    $contact = new KavaEventHelper($user->uid);
+    $contact = new KavaEventHelper($user->uid, $eventID);
 
     // check if person can also register team members
     if ($contact->canRegisterTeamMembers) {
@@ -72,6 +72,9 @@ function kavaevent_form($form, &$form_state) {
 }
 
 function kavaevent_submit($form_id, &$form_state) {
+  global $user;
+
+  $contact = new KavaEventHelper($user->uid, $form_state['values']['event_id']);
   $selectedContacts = array();
 
   // get selected contacts
@@ -85,14 +88,13 @@ function kavaevent_submit($form_id, &$form_state) {
     drupal_set_message('Gelieve een contact te selecteren', 'error');
     drupal_goto(current_path());
   }
+  else if (count($selectedContacts) > $contact->maxRegistrations) {
+    drupal_set_message('U mag maximum ' . $contact->maxRegistrations . ' contact(en) selecteren', 'error');
+    drupal_goto(current_path());
+  }
   else {
-    global $user;
-    $contact = new KavaEventHelper($user->uid);
-
     $contact->registerContactsForEvent($form_state['values']['event_id'], $selectedContacts);
     drupal_set_message('De geselecteerde personen zijn ingeschreven');
     drupal_goto('agenda');
   }
-
-  exit;
 }

@@ -2,16 +2,19 @@
 
 class KavaEventHelper {
   public $contactID = 0;
+  public $eventID = 0;
+  public $maxRegistrations = 0;
   public $pharmacyID = 0;
   public $canRegisterTeamMembers = FALSE;
   public $teamMembers = array();
 
-  public function __construct($drupalID) {
+  public function __construct($drupalID, $eventID) {
     if ($drupalID > 0) {
       civicrm_initialize();
 
+      $this->eventID = $eventID;
       $this->LookupContact($drupalID);
-      $this->LookupPermissions();
+      $this->LookupPermissions($eventID);
 
       if ($this->canRegisterTeamMembers) {
         $this->getTeamMembers();
@@ -45,8 +48,37 @@ class KavaEventHelper {
     $id = CRM_Core_DAO::singleValueQuery($sql, $sqlParams);
 
     if ($id) {
-      $this->canRegisterTeamMembers = TRUE;
       $this->pharmacyID = $id;
+
+      // check if multiple registrations are allowed for this event (= stored in custom fields)
+      $params = array(
+        'sequential' => 1,
+        'custom_group_id' => "Teaminschrijving",
+        'name' => 'Teaminschrijving_actief',
+
+      );
+      $fieldActive = civicrm_api3('CustomField', 'getsingle', $params);
+
+      $params = array(
+        'sequential' => 1,
+        'custom_group_id' => "Teaminschrijving",
+        'name' => 'Maximum_aantal',
+      );
+      $fieldMax = civicrm_api3('CustomField', 'getsingle', $params);
+
+      $params = array(
+        'event_id' => $this->eventID,
+        'return' => 'id,title,custom_' . $fieldActive['id'] . ',custom_' . $fieldMax['id'],
+      );
+      $event = civicrm_api3('Event', 'getsingle', $params);
+
+      if ($event['custom_' . $fieldActive['id']]) {
+        $this->canRegisterTeamMembers = TRUE;
+        $this->maxRegistrations = $event['custom_' . $fieldMax['id']];
+      }
+      else {
+        $this->canRegisterTeamMembers = FALSE;
+      }
     }
   }
 
