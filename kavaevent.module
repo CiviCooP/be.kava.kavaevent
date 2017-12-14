@@ -93,7 +93,7 @@ function kavaevent_submit($form_id, &$form_state) {
     drupal_goto(current_path());
   }
   else {
-    $contact->registerContactsForEvent($form_state['values']['event_id'], $selectedContacts);
+    $contact->registerContactsForEvent($selectedContacts);
     drupal_set_message('De geselecteerde personen zijn ingeschreven');
     drupal_goto('agenda');
   }
