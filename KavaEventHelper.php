@@ -96,9 +96,14 @@ class KavaEventHelper {
       );
       $event = civicrm_api3('Event', 'getsingle', $params);
 
-      if ($event['custom_' . $fieldActive['id']]) {
+      if ($event['custom_' . $fieldActive['id']] == 1) {
         $this->canRegisterTeamMembers = TRUE;
+
         $this->maxRegistrations = $event['custom_' . $fieldMax['id']];
+        // make sure the value is filled in
+        if (!$this->maxRegistrations) {
+          $this->maxRegistrations = 1000;
+        }
       }
       else {
         $this->canRegisterTeamMembers = FALSE;

@@ -42,7 +42,7 @@ function kavaevent_form($form, &$form_state) {
 
       $form['description'] = array(
         '#type' => 'item',
-        '#title' => 'Wie wil je inschrijven?',
+        '#title' => 'Wie wilt u inschrijven?',
       );
 
       // build list of team members
@@ -86,11 +86,9 @@ function kavaevent_submit($form_id, &$form_state) {
 
   if (count($selectedContacts) == 0) {
     drupal_set_message('Gelieve een contact te selecteren', 'error');
-    drupal_goto(current_path());
   }
   else if (count($selectedContacts) > $contact->maxRegistrations) {
-    drupal_set_message('U mag maximum ' . $contact->maxRegistrations . ' contact(en) selecteren', 'error');
-    drupal_goto(current_path());
+    drupal_set_message('U mag maximum ' . $contact->maxRegistrations . ' contact(en) selecteren voor deze activiteit', 'error');
   }
   else {
     $contact->registerContactsForEvent($selectedContacts);
