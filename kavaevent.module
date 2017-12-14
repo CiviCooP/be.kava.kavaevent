@@ -35,6 +35,8 @@ function kavaevent_form($form, &$form_state) {
 
     // check if person can also register team members
     if ($contact->canRegisterTeamMembers) {
+      drupal_set_title($contact->eventTitle);
+
       $form['event_id'] = array(
         '#type' => 'hidden',
         '#value' => $eventID,
