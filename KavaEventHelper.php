@@ -1,30 +1,56 @@
 <?php
 
 class KavaEventHelper {
+
   public $contactID = 0;
   public $pharmacyID = 0;
+  public $eventID = 0;
   public $canRegisterTeamMembers = FALSE;
-  public $teamMembers = array();
+  public $maxRegistrations = NULL;
+  public $teamMembers = [];
 
-  public function __construct($drupalID) {
-    if ($drupalID > 0) {
+  public function __construct($eventID, $drupalID) {
+    if ($eventID > 0 && $drupalID > 0) {
       civicrm_initialize();
 
       $this->LookupContact($drupalID);
+
+      $this->eventID = $eventID;
       $this->LookupPermissions();
 
       if ($this->canRegisterTeamMembers) {
         $this->getTeamMembers();
       }
-    }
-    else {
+    } else {
       throw new Exception('U moet eerst aanmelden');
     }
   }
 
   private function LookupPermissions() {
-    $relTypeTitularis = 35;
-    $relTypeCoTitularis = 41;
+
+    // Check event settings
+
+    // NOTE: These events fields are currently not created automatically
+    $isActiveFieldName = $this->getCustomFieldApiName('Teaminschrijving', 'Teaminschrijving_actief');
+    $maxRegistrationsFieldName = $this->getCustomFieldApiName('Teaminschrijving', 'Maximum_aantal');
+
+    $eventInfo = civicrm_api3('Event', 'getsingle', [
+      'id'     => $this->eventID,
+      'return' => $isActiveFieldName . ',' . $maxRegistrationsFieldName,
+    ]);
+
+    if (!isset($eventInfo[$isActiveFieldName]) || $eventInfo[$isActiveFieldName] == 0) {
+      return;
+    }
+
+    if (isset($eventInfo[$maxRegistrationsFieldName])) {
+      $this->maxRegistrations = $eventInfo[$maxRegistrationsFieldName];
+    }
+
+    // Teaminschrijving is active for this event, continue...
+
+    $relTypeTitularis = $this->getRelationshipTypeId('heeft als titularis');
+    $relTypeCoTitularis = $this->getRelationshipTypeId('heeft als co-titularis');
 
     // check if this contact is titularis or co-titularis
     $sql = '
@@ -37,11 +63,11 @@ class KavaEventHelper {
         AND r.relationship_type_id in (%2, %3)
         and r.is_active = 1
     ';
-    $sqlParams = array(
-      1 => array($this->contactID, 'Integer'),
-      2 => array($relTypeTitularis, 'Integer'),
-      3 => array($relTypeCoTitularis, 'Integer'),
-    );
+    $sqlParams = [
+      1 => [$this->contactID, 'Integer'],
+      2 => [$relTypeTitularis, 'Integer'],
+      3 => [$relTypeCoTitularis, 'Integer'],
+    ];
     $id = CRM_Core_DAO::singleValueQuery($sql, $sqlParams);
 
     if ($id) {
@@ -52,16 +78,15 @@ class KavaEventHelper {
 
   private function LookupContact($drupalID) {
     // get the civi id for this drupal id
-    $params = array(
+    $params = [
       'sequential' => 1,
-      'uf_id' => $drupalID,
-    );
+      'uf_id'      => $drupalID,
+    ];
     $result = civicrm_api3('UFMatch', 'get', $params);
     if ($result['is_error'] == 0 && $result['count'] > 0) {
       // ok, found contact
       $this->contactID = $result['values'][0]['contact_id'];
-    }
-    else {
+    } else {
       // not found
       throw new Exception('Probleem tijdens het ophalen van uw gegevens. Neem contact op met KAVA.');
     }
@@ -124,26 +149,50 @@ class KavaEventHelper {
       ORDER BY
         sort_name
     ";
-    $sqlParams = array(
-      1 => array($this->pharmacyID, 'Integer'),
-      2 => array($relTypeTitularis, 'Integer'),
-      3 => array($relTypeCoTitularis, 'Integer'),
-      4 => array($relTypeAdjunct, 'Integer'),
-      5 => array($relTypeAssistent, 'Integer'),
-      6 => array($relTypeOwner, 'Integer'),
-      7 => array($relTypeCoOwner, 'Integer'),
-    );
+    $sqlParams = [
+      1 => [$this->pharmacyID, 'Integer'],
+      2 => [$relTypeTitularis, 'Integer'],
+      3 => [$relTypeCoTitularis, 'Integer'],
+      4 => [$relTypeAdjunct, 'Integer'],
+      5 => [$relTypeAssistent, 'Integer'],
+      6 => [$relTypeOwner, 'Integer'],
+      7 => [$relTypeCoOwner, 'Integer'],
+    ];
     $dao = CRM_Core_DAO::executeQuery($sql, $sqlParams);
 
     while ($dao->fetch()) {
-      $this->teamMembers[] = array(
+      $this->teamMembers[] = [
         $dao->id,
         $dao->display_name,
-        $dao->job_title
-      );
+        $dao->job_title,
+      ];
     }
   }
 
   public function registerContactsForEvent($eventID, $contactIDs) {
+  }
+
+  private function getCustomFieldApiName($customGroupName, $customFieldName) {
+    try {
+      $fieldId = civicrm_api3('CustomField', 'getvalue', [
+        'return'          => 'id',
+        'custom_group_id' => $customGroupName,
+        'name'            => $customFieldName,
+      ]);
+      return 'custom_' . $fieldId;
+    } catch (CiviCRM_API3_Exception $e) {
+      return NULL;
+    }
+  }
+
+  private function getRelationshipTypeId($nameAB) {
+    try {
+      return civicrm_api3('RelationshipType', 'getvalue', [
+        'return'   => 'id',
+        'name_a_b' => $nameAB,
+      ]);
+    } catch (CiviCRM_API3_Exception $e) {
+      return NULL;
+    }
   }
 }

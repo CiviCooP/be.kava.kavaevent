@@ -31,7 +31,7 @@ function kavaevent_form($form, &$form_state) {
       drupal_goto('agenda');
     }
 
-    $contact = new KavaEventHelper($user->uid);
+    $contact = new KavaEventHelper($eventID, $user->uid);
 
     // check if person can also register team members
     if ($contact->canRegisterTeamMembers) {
@@ -87,7 +87,7 @@ function kavaevent_submit($form_id, &$form_state) {
   }
   else {
     global $user;
-    $contact = new KavaEventHelper($user->uid);
+    $contact = new KavaEventHelper($form_state['values']['event_id'], $user->uid);
 
     $contact->registerContactsForEvent($form_state['values']['event_id'], $selectedContacts);
     drupal_set_message('De geselecteerde personen zijn ingeschreven');
