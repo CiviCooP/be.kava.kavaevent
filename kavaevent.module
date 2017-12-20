@@ -1,70 +1,77 @@
 <?php
 
 function kavaevent_menu() {
-  $items = array();
+  $items = [];
 
-  $items['kavaevent'] = array(
-    'title' => 'Inschrijven',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('kavaevent_form'),
-    'access arguments' => array('access content'),
-    'description' => '',
-    'type' => MENU_CALLBACK,
-    'file' => 'KavaEventHelper.php',
-  );
+  $items['kavaevent'] = [
+    'title'            => 'Inschrijven',
+    'page callback'    => 'kavaevent_page',
+    'access arguments' => ['access content'],
+    'type'             => MENU_CALLBACK,
+    'file'             => 'KavaEventHelper.php',
+  ];
 
   return $items;
+}
+
+function kavaevent_page() {
+  drupal_add_css(drupal_get_path('module', 'kavaevent') . '/assets/kavaevent.css', ['group' => CSS_THEME, 'weight' => 100]);
+  drupal_add_js(drupal_get_path('module', 'kavaevent') . '/assets/kavaevent.js');
+
+  return theme('kavaevent_register', [
+    'form'    => drupal_get_form('kavaevent_form'),
+    'eventId' => kavaevent_get_event_id(),
+  ]);
+}
+
+function kavaevent_theme() {
+  return [
+    'kavaevent_register' => [
+      'template'  => 'templates/register',
+      'variables' => [
+        'form' => NULL,
+      ],
+    ],
+  ];
 }
 
 function kavaevent_form($form, &$form_state) {
   global $user;
 
   try {
-    // get the event id from the url
-    $urlParams = drupal_get_query_parameters();
-    if (isset($urlParams['event_id'])) {
-      $eventID = $urlParams['event_id'];
-    }
-    else {
-      // no event id
-      drupal_set_message('Geen event opgegeven', 'error');
-      drupal_goto('agenda');
-    }
-
-    $contact = new KavaEventHelper($user->uid, $eventID);
+    $eventId = kavaevent_get_event_id();
+    $contact = new KavaEventHelper($user->uid, $eventId);
 
     // check if person can also register team members
     if ($contact->canRegisterTeamMembers) {
-      $form['event_id'] = array(
-        '#type' => 'hidden',
-        '#value' => $eventID,
-      );
+      $form['event_id'] = [
+        '#type'  => 'hidden',
+        '#value' => $eventId,
+      ];
 
-      $form['description'] = array(
-        '#type' => 'item',
-        '#title' => 'Wie wil je inschrijven?',
-      );
+      $form['description'] = [
+        '#type'  => 'item',
+        '#title' => 'Wie wilt u inschrijven?',
+      ];
 
       // build list of team members
       foreach ($contact->teamMembers as $teamMember) {
         $form['contact_' . $teamMember[0]] = [
-          '#type' => 'checkbox',
+          '#type'  => 'checkbox',
           '#title' => $teamMember[1] . ', ' . $teamMember[2],
         ];
       }
 
-      $form['submit'] = array(
-        '#type' => 'submit',
-        '#value' => 'Nu inschrijven',
-        '#submit' => array('kavaevent_submit'),
-      );
-    }
-    else {
+      $form['submit'] = [
+        '#type'   => 'submit',
+        '#value'  => 'Nu inschrijven',
+        '#submit' => ['kavaevent_submit'],
+      ];
+    } else {
       // cannot register team, redirect to the event register page
-      drupal_goto('civicrm/event/register?id=' . $eventID . '&reset=1');
+      drupal_goto('civicrm/event/register?id=' . $eventId . '&reset=1');
     }
-  }
-  catch (Exception $e) {
+  } catch (Exception $e) {
     drupal_set_message($e->getMessage(), 'error');
   }
 
@@ -75,7 +82,7 @@ function kavaevent_submit($form_id, &$form_state) {
   global $user;
 
   $contact = new KavaEventHelper($user->uid, $form_state['values']['event_id']);
-  $selectedContacts = array();
+  $selectedContacts = [];
 
   // get selected contacts
   foreach ($form_state['values'] as $key => $value) {
@@ -86,15 +93,25 @@ function kavaevent_submit($form_id, &$form_state) {
 
   if (count($selectedContacts) == 0) {
     drupal_set_message('Gelieve een contact te selecteren', 'error');
-    drupal_goto(current_path());
-  }
-  else if (count($selectedContacts) > $contact->maxRegistrations) {
+    drupal_goto(current_path(), ['query' => drupal_get_query_parameters()]);
+  } else if (count($selectedContacts) > $contact->maxRegistrations) {
     drupal_set_message('U mag maximum ' . $contact->maxRegistrations . ' contact(en) selecteren', 'error');
-    drupal_goto(current_path());
-  }
-  else {
+    drupal_goto(current_path(), ['query' => drupal_get_query_parameters()]);
+  } else {
     $contact->registerContactsForEvent($selectedContacts);
     drupal_set_message('De geselecteerde personen zijn ingeschreven');
+    drupal_goto('agenda');
+  }
+}
+
+function kavaevent_get_event_id() {
+  // get the event id from the url
+  $urlParams = drupal_get_query_parameters();
+  if (isset($urlParams['event_id'])) {
+    return $urlParams['event_id'];
+  } else {
+    // no event id
+    drupal_set_message('Geen event opgegeven', 'error');
     drupal_goto('agenda');
   }
 }

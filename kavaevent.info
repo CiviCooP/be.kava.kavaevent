@@ -7,4 +7,3 @@ core = 7.x
 
 files[] = kavaevent.module
 files[] = KavaEventHelper.php
-

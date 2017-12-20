@@ -1,0 +1,17 @@
+/* CSS for KAVA Event Module */
+
+#kavaevent-register-buttons input {
+    background-color: #417505;
+    border-color: #417505;
+    border-radius: 6px;
+    font-weight: bold;
+    color: white;
+    padding: 8px 20px;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+#kavaevent-team-form {
+    display: none;
+    margin-top: 20px;
+}
