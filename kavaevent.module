@@ -44,15 +44,17 @@ function kavaevent_form($form, &$form_state) {
 
     // check if person can also register team members
     if ($contact->canRegisterTeamMembers) {
-      $form['event_id'] = [
-        '#type'  => 'hidden',
-        '#value' => $eventId,
-      ];
+      drupal_set_title($contact->eventTitle);
 
-      $form['description'] = [
-        '#type'  => 'item',
+      $form['event_id'] = array(
+        '#type' => 'hidden',
+        '#value' => $eventId,
+      );
+
+      $form['description'] = array(
+        '#type' => 'item',
         '#title' => 'Wie wilt u inschrijven?',
-      ];
+      );
 
       // build list of team members
       foreach ($contact->teamMembers as $teamMember) {
@@ -93,11 +95,11 @@ function kavaevent_submit($form_id, &$form_state) {
 
   if (count($selectedContacts) == 0) {
     drupal_set_message('Gelieve een contact te selecteren', 'error');
-    drupal_goto(current_path(), ['query' => drupal_get_query_parameters()]);
-  } else if (count($selectedContacts) > $contact->maxRegistrations) {
-    drupal_set_message('U mag maximum ' . $contact->maxRegistrations . ' contact(en) selecteren', 'error');
-    drupal_goto(current_path(), ['query' => drupal_get_query_parameters()]);
-  } else {
+  }
+  else if (count($selectedContacts) > $contact->maxRegistrations) {
+    drupal_set_message('U mag maximum ' . $contact->maxRegistrations . ' contact(en) selecteren voor deze activiteit', 'error');
+  }
+  else {
     $contact->registerContactsForEvent($selectedContacts);
     drupal_set_message('De geselecteerde personen zijn ingeschreven');
     drupal_goto('agenda');

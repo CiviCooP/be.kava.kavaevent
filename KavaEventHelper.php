@@ -4,6 +4,7 @@ class KavaEventHelper {
 
   public $contactID = 0;
   public $eventID = 0;
+  public $eventTitle = '';
   public $maxRegistrations = 0;
   public $pharmacyID = 0;
   public $canRegisterTeamMembers = FALSE;
@@ -96,9 +97,17 @@ class KavaEventHelper {
       );
       $event = civicrm_api3('Event', 'getsingle', $params);
 
-      if ($event['custom_' . $fieldActive['id']]) {
+      // store the title
+      $this->eventTitle = $event['title'];
+
+      if ($event['custom_' . $fieldActive['id']] == 1) {
         $this->canRegisterTeamMembers = TRUE;
+
         $this->maxRegistrations = $event['custom_' . $fieldMax['id']];
+        // make sure the value is filled in
+        if (!$this->maxRegistrations) {
+          $this->maxRegistrations = 1000;
+        }
       }
       else {
         $this->canRegisterTeamMembers = FALSE;
